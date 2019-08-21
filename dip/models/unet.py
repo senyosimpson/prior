@@ -12,7 +12,7 @@ class UNetBasicBlock(nn.Module):
 
     def forward(self, x):
         x = self.bn1(self.conv1(x))
-        x = self,relu(x)
+        x = self.relu(x)
         x = self.bn2(self.conv2(x))
         x = self.relu(x)
         return x
@@ -57,7 +57,7 @@ class PixelShuffleConv2d(nn.Module):
         _output_channels = input_channels * 4
         self.conv1 = nn.Conv2d(input_channels, _output_channels, kernel_size=kernel_size, padding=1, bias=False)
         self.conv2 = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=1, bias=False)
-        self.pixel_shuffle = nn.PixelShufle(upscale_factor)
+        self.pixel_shuffle = nn.PixelShuffle(upscale_factor)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -110,7 +110,7 @@ class UNet(nn.Module):
         x3 = self.block6(self.block5(x))
         x = self.down_block3(x3)
         x4 = self.block8(self.block7(x))
-        x = self.down_block(x4)
+        x = self.down_block4(x4)
         x = self.block10(self.block9(x))
 
         x = self.up_block1(x, x4)
