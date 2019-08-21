@@ -1,4 +1,4 @@
-""" Code to resize images taken from [BasicSR](https://github.com/xinntao/BasicSR/blob/master/codes/utils/util.py)
+""" Code to resize images taken from [BasicSR](https://github.com/xinntao/BasicSR/blob/master/codes/data/util.py)
 Implementation recreates the matlab kernel version so that comparisons can be made with other methods
 """
 import torch
