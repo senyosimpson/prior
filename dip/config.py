@@ -14,19 +14,11 @@ class Config:
         self.model = conf['model']
         self.steps = conf['steps']
         self.loss_fn = conf['loss_fn']
-        self.dataset = conf['dataset']
+        self.dataset_path = conf['dataset_path']
 
         opt = conf['optimizer']
         self.optimizer_name = opt['name']
         self.optimizer_params = opt['params']
-
-        if 'scheduler' in conf:
-            sched = conf['scheduler']
-            self.scheduler_name = sched['name']
-            self.scheduler_params = sched['params']
-        else:
-            self.scheduler_name = None
-            self.scheduler_params = None
 
     def __getitem__(self, key):
         return getattr(self, key)

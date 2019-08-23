@@ -5,6 +5,7 @@
 # Update weights
 # Run till convergence
 
+import os
 import random
 import logging
 import argparse
@@ -12,11 +13,13 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import torchvision.transforms.functional as TF
 from torchvision import transforms
+from dip.utils import imresize
 from dip.config import Config
+from dip.constants import *
 from dip.models.unet import UNet
 from dip.datasets.set5 import Set5
-from dip.utils import imresize
 
 if __name__ == '__main__':
     logger = logging.getLogger('dip')
@@ -35,13 +38,14 @@ if __name__ == '__main__':
     config = Config(opts.config)
     steps = config['steps']
     model_name = config['model']
-    ds_path = config['dataset']
+    ds_path = config['dataset_path']
+    logdir = config['logdir']
 
     use_cuda = not False and torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
 
-    model = UNet()
-    optimizer = optim.SGD(model.parameters(), lr=1e-4, momentum=0.9)
+    model = UNet().to(device)
+    optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
     mse = nn.MSELoss()
 
@@ -63,16 +67,25 @@ if __name__ == '__main__':
     lres_img.to(device)
     z.to(device)
     for step in range(steps):
-        logging.info('Step [%d]/[%d]' % (step+1, steps))
+        logger.info('Step [%d]/[%d]' % (step+1, steps))
         optimizer.zero_grad()
         hr = model(z)
         hr = torch.squeeze(hr)
         gen_lr = imresize(hr, scale=0.25)
         gen_lr = torch.unsqueeze(gen_lr, dim=0)
-        print(gen_lr.shape)
-        print(lres_img.shape)
         loss = mse(gen_lr, lres_img)
         loss.backward()
         optimizer.step()
-        logger.info('step: %d, loss: %.5f' % (step, loss.item()))
+        logger.info('step: %d, loss: %.5f' % (step+1, loss.item()))
         #z = z + noise * 0.03
+
+        if step % 100 == 0:
+            model.eval()
+            with torch.no_grad():
+                output = model(z)
+                output = output.squeeze()
+                output = TF.to_pil_image(output)
+                save_path = 'iteration-%d.png' % step
+                save_path = os.path.join(logdir, save_path)
+                output.save(save_path, 'PNG')
+            model.train()
