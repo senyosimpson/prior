@@ -37,10 +37,6 @@ class UNetUpsampleBlock(nn.Module):
         if upsampler == 'bilinear':
             self.upsample = UpsampleBlock2d(input_channels, output_channels)
 
-        self.conv = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=1, bias=True)
-        self.bn = nn.BatchNorm2d(output_channels)
-        self.relu = nn.ReLU()
-    
     def forward(self, x, y):
         x = self.upsample(x)
         x = torch.cat((x, y), dim=1)
@@ -158,20 +154,20 @@ class LightweightUNet(nn.Module):
 
         # decoder, comprised of upsampling blocks
         self.up_block1 = UNetUpsampleBlock(256, 128)
-        self.block13 = UNetBlock(128, 128)
+        self.block13 = UNetBlock(256, 128)
         self.block14 = UNetBlock(128, 128)
 
         self.up_block2 = UNetUpsampleBlock(128, 64)
-        self.block15 = UNetBlock(64, 64)
+        self.block15 = UNetBlock(128, 64)
         self.block16 = UNetBlock(64, 64)
         self.up_block3 = UNetUpsampleBlock(64, 32)
-        self.block17 = UNetBlock(32, 32)
+        self.block17 = UNetBlock(64, 32)
         self.block18 = UNetBlock(32, 32)
         self.up_block4 = UNetUpsampleBlock(32, 16)
-        self.block19 = UNetBlock(16, 16)
+        self.block19 = UNetBlock(32, 16)
         self.block20 = UNetBlock(16, 16)
         self.up_block5 = UNetUpsampleBlock(16, 8)
-        self.block21 = UNetBlock(8, 8)
+        self.block21 = UNetBlock(16, 8)
         self.block22 = UNetBlock(8, 3, use_relu=False)
 
     def forward(self, x):
