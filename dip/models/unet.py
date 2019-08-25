@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 class UNetBasicBlock(nn.Module):
     def __init__(self, input_channels, output_channels, stride=1, kernel_size=3):
         super().__init__()
-        self.conv1 = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=1, bias=False)
-        self.conv2 = nn.Conv2d(output_channels, output_channels, kernel_size=kernel_size, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=1, bias=True)
+        self.conv2 = nn.Conv2d(output_channels, output_channels, kernel_size=kernel_size, padding=1, bias=True)
         self.bn1 = nn.BatchNorm2d(output_channels)
         self.bn2 = nn.BatchNorm2d(output_channels)
         self.relu = nn.ReLU()
@@ -20,7 +21,7 @@ class UNetBasicBlock(nn.Module):
 class UNetDownsampleBlock(nn.Module):
     def __init__(self, channels, kernel_size=3, stride=2):
         super().__init__()
-        self.conv = nn.Conv2d(channels, channels, kernel_size=kernel_size, stride=stride, padding=1, bias=False)
+        self.conv = nn.Conv2d(channels, channels, kernel_size=kernel_size, stride=stride, padding=1, bias=True)
         self.relu = nn.ReLU()
         self.bn = nn.BatchNorm2d(channels)
 
@@ -30,14 +31,16 @@ class UNetDownsampleBlock(nn.Module):
         return x
 
 class UNetUpsampleBlock(nn.Module):
-    def __init__(self, input_channels, output_channels, kernel_size=3, upsampler='pixelshuffle', upscale_factor=2):
+    def __init__(self, input_channels, output_channels, kernel_size=3, upsampler='bilinear', upscale_factor=2):
         super().__init__()
-        self.upsample = nn.ConvTranspose2d(input_channels, output_channels, kernel_size=3, stride=upscale_factor, padding=1, bias=False)
+        self.upsample = nn.ConvTranspose2d(input_channels, output_channels, kernel_size=2, stride=upscale_factor, bias=True)
         if upsampler == 'pixelshuffle':
             self.upsample = PixelShuffleConv2d(input_channels, output_channels, kernel_size=kernel_size)
+        if upsampler == 'bilinear':
+            self.upsample = UpsampleBlock2d(input_channels, output_channels)
 
-        self.conv1 = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=1, bias=False)
-        self.conv2 = nn.Conv2d(output_channels, output_channels, kernel_size=kernel_size, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=1, bias=True)
+        self.conv2 = nn.Conv2d(output_channels, output_channels, kernel_size=kernel_size, padding=1, bias=True)
         self.bn1 = nn.BatchNorm2d(output_channels)
         self.bn2 = nn.BatchNorm2d(output_channels)
         self.relu = nn.ReLU()
@@ -51,12 +54,24 @@ class UNetUpsampleBlock(nn.Module):
         x = self.relu(x)
         return x
 
+class UpsampleBlock2d(nn.Module):
+    def __init__(self, input_channels, output_channels, kernel_size=3, upscale_factor=2):
+        super().__init__()
+        self.conv = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=1, bias=True)
+        self.upsample = nn.Upsample(scale_factor=upscale_factor, mode='bilinear')
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.upsample(x)
+        x = self.relu(x)
+        return x   
 class PixelShuffleConv2d(nn.Module):
     def __init__(self, input_channels, output_channels, kernel_size=3, upscale_factor=2):
         super().__init__()
         _output_channels = input_channels * 4
-        self.conv1 = nn.Conv2d(input_channels, _output_channels, kernel_size=kernel_size, padding=1, bias=False)
-        self.conv2 = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(input_channels, _output_channels, kernel_size=kernel_size, padding=1, bias=True)
+        self.conv2 = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=1, bias=True)
         self.pixel_shuffle = nn.PixelShuffle(upscale_factor)
         self.relu = nn.ReLU()
 
@@ -87,6 +102,7 @@ class UNet(nn.Module):
         self.down_block4 = UNetDownsampleBlock(512)
         self.block9 = UNetBasicBlock(512, 1024)
         self.block10 = UNetBasicBlock(1024, 1024)
+        self.sigmoid = nn.Sigmoid()
 
         # decoder, comprised of upsampling blocks
         self.up_block1 = UNetUpsampleBlock(1024, 512)
@@ -121,4 +137,5 @@ class UNet(nn.Module):
         x = self.block16(self.block15(x))
         x = self.up_block4(x, x1)
         x = self.block18(self.block17(x))
+        x = self.sigmoid(x)
         return x
