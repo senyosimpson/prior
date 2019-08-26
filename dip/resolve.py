@@ -1,9 +1,3 @@
-# Generate random noize z
-# Pass through model that upsamples and super resolves image
-# Downsample output
-# Compare against LR image
-# Update weights
-# Run till convergence
 
 import os
 import random
@@ -44,7 +38,7 @@ if __name__ == '__main__':
     use_cuda = not False and torch.cuda.is_available()
     device = torch.device('cuda' if use_cuda else 'cpu')
 
-    model = UNet().to(device)
+    model = UNet(input_channels=32).to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
 
     mse = nn.MSELoss()
@@ -60,14 +54,15 @@ if __name__ == '__main__':
     lres_img = torch.unsqueeze(lres_img, dim=0)
     lres_h, lres_w = list(lres_img.shape)[2:]
     hres_h = lres_h * 4; hres_w = lres_w * 4
-    z = torch.zeros(1, 3, hres_h, hres_w)
-    z = z.normal_() * 1./10
-    #noise = z.clone().detach()
+    noise = torch.zeros(1, 32, hres_h, hres_w)
+    noise = noise.uniform_() * 1./10
+    input_noise = noise.detach().clone()
+    additive_noise = noise.detach().clone()
 
     lres_img.to(device)
-    z.to(device)
     for step in range(steps):
-        logger.info('Step [%d]/[%d]' % (step+1, steps))
+        z = input_noise + (additive_noise.normal_() * 1./30)
+        z.to(device)
         optimizer.zero_grad()
         hr = model(z)
         hr = torch.squeeze(hr)
@@ -76,8 +71,7 @@ if __name__ == '__main__':
         loss = mse(gen_lr, lres_img)
         loss.backward()
         optimizer.step()
-        logger.info('step: %d, loss: %.5f' % (step+1, loss.item()))
-        #z = z + noise * 0.03
+        logger.info('step: [%d]/[%d], loss: %.5f' % (step+1, steps, loss.item()))
 
         if step % 100 == 0:
             model.eval()

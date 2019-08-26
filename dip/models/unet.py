@@ -76,63 +76,6 @@ class UNet(nn.Module):
     def __init__(self, input_channels=3):
         super().__init__()
         # encoder
-        self.block1 = UNetBlock(input_channels, 64)
-        self.block2 = UNetBlock(64, 64)
-        self.down_block1 = UNetDownsampleBlock(64)
-        self.block3 = UNetBlock(64, 128)
-        self.block4 = UNetBlock(128, 128)
-        self.down_block2 = UNetDownsampleBlock(128)
-        self.block5 = UNetBlock(128, 256)
-        self.block6 = UNetBlock(256, 256)
-        self.down_block3 = UNetDownsampleBlock(256)
-        self.block7 = UNetBlock(256, 512)
-        self.block8 = UNetBlock(512, 512)
-        self.down_block4 = UNetDownsampleBlock(512)
-        self.block9 = UNetBlock(512, 1024)
-        self.block10 = UNetBlock(1024, 1024)
-        self.sigmoid = nn.Sigmoid()
-
-        # decoder, comprised of upsampling blocks
-        self.up_block1 = UNetUpsampleBlock(1024, 512)
-        self.block11 = UNetBlock(512, 512)
-        self.block12 = UNetBlock(512, 512)
-        self.up_block2 = UNetUpsampleBlock(512, 256)
-        self.block13 = UNetBlock(256, 256)
-        self.block14 = UNetBlock(256, 256)
-        self.up_block3 = UNetUpsampleBlock(256, 128)
-        self.block15 = UNetBlock(128, 128)
-        self.block16 = UNetBlock(128, 128)
-        self.up_block4 = UNetUpsampleBlock(128, 64)
-        self.block17 = UNetBlock(64, 64)
-        self.block18 = UNetBlock(64, 3, use_relu=False)
-
-    def forward(self, x):
-        x1 = self.block2(self.block1(x))
-        x = self.down_block1(x1)
-        x2 = self.block4(self.block3(x))
-        x = self.down_block2(x2)
-        x3 = self.block6(self.block5(x))
-        x = self.down_block3(x3)
-        x4 = self.block8(self.block7(x))
-        x = self.down_block4(x4)
-        x = self.block10(self.block9(x))
-
-        x = self.up_block1(x, x4)
-        x = self.block12(self.block11(x))
-        x = self.up_block2(x, x3)
-        x = self.block14(self.block13(x))
-        x = self.up_block3(x, x2)
-        x = self.block16(self.block15(x))
-        x = self.up_block4(x, x1)
-        x = self.block18(self.block17(x))
-        x = self.sigmoid(x)
-        return x
-    
-
-class LightweightUNet(nn.Module):
-    def __init__(self, input_channels=3):
-        super().__init__()
-        # encoder
         self.block1 = UNetBlock(input_channels, 8)
         self.block2 = UNetBlock(8, 8)
         self.down_block1 = UNetDownsampleBlock(8)
