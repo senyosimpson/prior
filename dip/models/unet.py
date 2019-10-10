@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+
 
 class UNetBlock(nn.Module):
-    def __init__(self, input_channels, output_channels, stride=1, kernel_size=3, use_relu=True):
+    def __init__(self, input_channels, output_channels, kernel_size=3, use_relu=True):
         super().__init__()
         self.conv = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=1, bias=True)
         self.bn = nn.BatchNorm2d(output_channels)
@@ -15,6 +15,7 @@ class UNetBlock(nn.Module):
         if self.use_relu:
             x = self.relu(x)
         return x
+
 
 class UNetDownsampleBlock(nn.Module):
     def __init__(self, channels, kernel_size=3, stride=2):
@@ -28,6 +29,7 @@ class UNetDownsampleBlock(nn.Module):
         x = self.relu(x)
         return x
 
+
 class UNetUpsampleBlock(nn.Module):
     def __init__(self, input_channels, output_channels, kernel_size=3, upsampler='bilinear', upscale_factor=2):
         super().__init__()
@@ -35,14 +37,15 @@ class UNetUpsampleBlock(nn.Module):
         if upsampler == 'pixelshuffle':
             self.upsample = PixelShuffleConv2d(input_channels, output_channels, kernel_size=kernel_size)
         if upsampler == 'bilinear':
-            self.upsample = UpsampleBlock2d(input_channels, output_channels)
+            self.upsample = BilinearUpsampler(input_channels, output_channels)
 
     def forward(self, x, y):
         x = self.upsample(x)
         x = torch.cat((x, y), dim=1)
         return x
 
-class UpsampleBlock2d(nn.Module):
+
+class BilinearUpsampler(nn.Module):
     def __init__(self, input_channels, output_channels, kernel_size=3, upscale_factor=2):
         super().__init__()
         self.conv = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, padding=1, bias=True)
@@ -53,7 +56,9 @@ class UpsampleBlock2d(nn.Module):
         x = self.conv(x)
         x = self.upsample(x)
         x = self.relu(x)
-        return x   
+        return x
+
+
 class PixelShuffleConv2d(nn.Module):
     def __init__(self, input_channels, output_channels, kernel_size=3, upscale_factor=2):
         super().__init__()
