@@ -1,16 +1,14 @@
 import os
 from PIL import Image
-import torch
 from torch.utils.data import Dataset
 from glob import glob
 
 
 class Set5(Dataset):
-    def __init__(self, root, fmat='png', colour_space='rgb', transform=None):
+    def __init__(self, root, fmat='png', transform=None):
         ext = '*.%s' % fmat
         self.dataset = self.build_dataset(os.path.join(root, ext))
         self.transform = transform
-        self.cspace = colour_space
 
     def build_dataset(self, root):
         image_paths = glob(root)
@@ -20,9 +18,6 @@ class Set5(Dataset):
     def __getitem__(self, idx):
         lres_img_path = self.dataset[idx]
         lres_img = Image.open(lres_img_path)
-        if self.cspace == 'ycbcr':
-            lres_img = lres_img.convert('YCbCr')
-
         if self.transform:
             lres_img = self.transform(lres_img)
         return lres_img

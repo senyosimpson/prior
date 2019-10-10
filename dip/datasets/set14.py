@@ -16,18 +16,14 @@ class Set14(Dataset):
         return dataset
 
     def __getitem__(self, idx):
-        lres_img_path, hres_img_path = self.dataset[idx]
+        lres_img_path = self.dataset[idx]
         lres_img = Image.open(lres_img_path)
-        hres_img = Image.open(hres_img_path)
         # third image is grayscale, convert to RGB
         if idx == 2:
             lres_img = lres_img.convert('RGB')
-            hres_img = hres_img.convert('RGB')
-        sample = (lres_img, hres_img)
-
         if self.transform:
-            sample = self.transform(sample)
-        return sample
+            lres_img = self.transform(lres_img)
+        return lres_img
 
     def __len__(self):
         return len(self.dataset)
