@@ -10,7 +10,6 @@ import torch.optim as optim
 import torchvision.transforms.functional as TF
 from torchvision import transforms
 from dip.utils import imresize
-from dip.config import Config
 from dip.models.unet import UNet
 from dip.datasets.set5 import Set5
 
@@ -23,16 +22,23 @@ if __name__ == '__main__':
     logger.addHandler(handler)
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config',
+    parser.add_argument('--dataset',
                         type=str,
                         required=True,
-                        help='path to config file')
-    opts = parser.parse_args()
-    config = Config(opts.config)
-    steps = config['steps']
-    model_name = config['model']
-    ds_path = config['dataset_path']
-    logdir = config['logdir']
+                        help='path to dataset')
+    parser.add_argument('--logdir',
+                        type=str,
+                        required=True,
+                        help='path to directory to save hr image outputs')
+    parser.add_argument('--n-steps',
+                        type=int,
+                        default=10000,
+                        required=False,
+                        help='number of steps to take in optimization process')
+    args = parser.parse_args()
+    ds_path = args.dataset
+    logdir = args.logdir
+    steps = args.n_steps
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
