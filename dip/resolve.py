@@ -11,7 +11,6 @@ import torchvision.transforms.functional as TF
 from torchvision import transforms
 from dip.utils import imresize
 from dip.config import Config
-from dip.constants import *
 from dip.models.unet import UNet
 from dip.datasets.set5 import Set5
 
@@ -35,8 +34,7 @@ if __name__ == '__main__':
     ds_path = config['dataset_path']
     logdir = config['logdir']
 
-    use_cuda = not False and torch.cuda.is_available()
-    device = torch.device('cuda' if use_cuda else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     model = UNet(input_channels=32).to(device)
     optimizer = optim.Adam(model.parameters(), lr=1e-4)
@@ -47,7 +45,7 @@ if __name__ == '__main__':
         transforms.ToTensor()
     ])
     dataset = Set5(ds_path, transform=tsfm)
-    
+
     idx = random.choice(np.arange(len(dataset)))
     idx = 2
     lres_img = dataset[idx]
@@ -59,26 +57,26 @@ if __name__ == '__main__':
     input_noise = noise.detach().clone()
     additive_noise = noise.detach().clone()
 
-    lres_img.to(device)
+    lres_img = lres_img.to(device)
     for step in range(steps):
         z = input_noise + (additive_noise.normal_() * 1./30)
-        z.to(device)
+        z = z.to(device)
         optimizer.zero_grad()
         hr = model(z)
         hr = torch.squeeze(hr)
-        gen_lr = imresize(hr, scale=0.25)
+        gen_lr = imresize(hr, scale=0.25, device=device)
         gen_lr = torch.unsqueeze(gen_lr, dim=0)
         loss = mse(gen_lr, lres_img)
         loss.backward()
         optimizer.step()
-        logger.info('step: [%d]/[%d], loss: %.5f' % (step+1, steps, loss.item()))
+        logger.info('step: [%d/%d], loss: %.5f' % (step+1, steps, loss.item()))
 
         if step % 100 == 0:
             model.eval()
             with torch.no_grad():
                 output = model(z)
                 output = output.squeeze()
-                output = TF.to_pil_image(output)
+                output = TF.to_pil_image(output.cpu())
                 save_path = 'iteration-%d.png' % step
                 save_path = os.path.join(logdir, save_path)
                 output.save(save_path, 'PNG')
