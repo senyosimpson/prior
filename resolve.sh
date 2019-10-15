@@ -1,2 +1,4 @@
+#!/usr/bin/env bash
 python3 -m dip.resolve \
---config dip/config.json
+--dataset /storage/Set5 \
+--logdir /artifacts
